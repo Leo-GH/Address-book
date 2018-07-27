@@ -3,7 +3,7 @@ package com.leo;
 import java.io.Serializable;
 
 //手机联系人 只包含name phone
-public class Person1 implements Serializable {
+public class Person1 extends Object implements Serializable {
 
     private String name;
     private String phone;

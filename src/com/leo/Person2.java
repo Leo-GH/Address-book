@@ -2,7 +2,7 @@ package com.leo;
 
 import java.io.Serializable;
 
-//手机卡联系人 继承erson1 包含name phone qq birthplace
+//手机卡联系人 继承person1 包含name phone qq birthplace
 public class Person2 extends Person1 implements Serializable {
 
     private String qq;
