@@ -1,6 +1,6 @@
 package com.leo;
 
-import java.io.*;
+import java.sql.*;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Scanner;
@@ -8,6 +8,8 @@ import java.util.Scanner;
 //通讯录_2
 public class Address_book_2 implements Address_book{
     private HashMap p2;
+    Connection con=DataBase.getCon();
+    PreparedStatement preparedSta=null;
 
     Address_book_2() {
         p2=new HashMap<String,Person2>();
@@ -26,7 +28,9 @@ public class Address_book_2 implements Address_book{
     }
 
     @Override
-    public void add() {
+    public void add() throws SQLException {
+        String sql="INSERT sim(name,phone,qq,birthplace) VALUES(?,?,?,?)";
+        preparedSta=con.prepareStatement(sql);
         System.out.println("正在添加联系人 [输入stop结束录入]\n");
         Scanner in = new Scanner(System.in);
         System.out.println("请输入联系人姓名： ");
@@ -40,23 +44,32 @@ public class Address_book_2 implements Address_book{
             String birthplace = in.nextLine();
             Person2 temp = new Person2(name, phone,qq,birthplace);
             p2.put(phone, temp);
+            preparedSta.setString(1, name);
+            preparedSta.setString(2, phone);
+            preparedSta.setString(3, qq);
+            preparedSta.setString(4, birthplace);
+            preparedSta.execute();
             System.out.println("\n" + temp.toString() + "\n#   添加到sim卡成功   #\n");
             add();
         } else {
             System.out.println("#   录入完成！\n");
-            save();
         }
     }
 
     @Override
-    public void delete(String x) {
+    public void delete(String x) throws SQLException {
         p2.remove(x);
-        save();
+        String sql="DELETE FROM sim WHERE phone=?";
+        PreparedStatement preparedsta=con.prepareStatement(sql);
+        preparedsta.setString(1, x);
+        preparedsta.execute();
     }
 
     @Override
-    public void modify(String x) {
+    public void modify(String x) throws SQLException {
         p2.remove(x);
+        String sql="UPDATE sim SET name=?,phone=?,qq=?,birthplace=? WHERE phone=?";
+        preparedSta=con.prepareStatement(sql);
         Scanner in = new Scanner(System.in);
         System.out.println("请输入联系人姓名： ");
         String name_temp=in.nextLine();
@@ -68,8 +81,13 @@ public class Address_book_2 implements Address_book{
         String place_temp=in.nextLine();
         Person2 p2_temp= new Person2(name_temp,phone_temp,qq_temp,place_temp);
         p2.put(phone_temp,p2_temp );
+        preparedSta.setString(1, name_temp);
+        preparedSta.setString(2, phone_temp);
+        preparedSta.setString(3, qq_temp);
+        preparedSta.setString(4, place_temp);
+        preparedSta.setString(5,x );
+        preparedSta.execute();
         System.out.println(p2_temp);
-        save();
     }
 
     @Override
@@ -115,38 +133,30 @@ public class Address_book_2 implements Address_book{
     }
 
     @Override
-    public void read() {
-        try {
-            p2.clear();
-            FileInputStream filein = new FileInputStream("resources\\sim.txt");
-            ObjectInputStream in = new ObjectInputStream(filein);
-            Person2 temp;
-            while (filein.available() > 0) {
-                temp = (Person2) in.readObject();
-                p2.put(temp.getPhone(), temp);
-            }
-            in.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
+    public void read() throws SQLException {
+        String cmd = "SELECT * FROM sim";
+        preparedSta=con.prepareStatement(cmd);
+        ResultSet res=preparedSta.executeQuery();
+        while (res.next()){
+            String name=res.getString("name");
+            String phone=res.getString("phone");
+            String qq=res.getString("qq");
+            String birthplace=res.getString("birthplace");
+            Person2 temp=new Person2(name,phone,qq,birthplace);
+            p2.put(phone, temp);
         }
     }
 
     @Override
     public void save() {
-        try {
-            FileOutputStream fileout = new FileOutputStream("resources\\sim.txt");
-            ObjectOutputStream out = new ObjectOutputStream(fileout);
-            Iterator map1it=p2.entrySet().iterator();
-            while(map1it.hasNext())
-            {
-                HashMap.Entry<String, Person2> entry=(HashMap.Entry<String, Person2>) map1it.next();
-                out.writeObject(entry.getValue());
-            }
-            fileout.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+
+    }
+
+    public void close(ResultSet x, boolean flag){
+        if(flag){
+            DataBase.close(x, preparedSta,con );
         }
+        else
+            DataBase.close(null, preparedSta,con );
     }
 }

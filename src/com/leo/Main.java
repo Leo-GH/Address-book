@@ -1,8 +1,20 @@
 package com.leo;
-/* Address_book By Leo 2018/07/26 - 2018/07/27 */
+
+import java.sql.SQLException;
+
+/**
+ * @Author:Leo-GH
+ * @Date:  2018/8/4 21:07
+ * 运用MySQL重写Address-book
+ **/
+
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args){
         Menu menu=new Menu();
-        menu.welcome();
+        try {
+            menu.welcome();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }

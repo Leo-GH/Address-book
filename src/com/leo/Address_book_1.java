@@ -1,6 +1,6 @@
 package com.leo;
 
-import java.io.*;
+import java.sql.*;
 import java.util.HashMap;
 import java.util.Scanner;
 
@@ -9,6 +9,8 @@ public class Address_book_1 implements Address_book {
 
     private   HashMap<String, Person1> p1;
     private   HashMap<String, Person2> p2_Temp;
+    Connection con=DataBase.getCon();
+    PreparedStatement preparedSta=null;
 
     Address_book_1() {
         p1 = new HashMap<String, Person1>();
@@ -31,7 +33,9 @@ public class Address_book_1 implements Address_book {
 
 
     @Override
-    public void add() {
+    public void add() throws SQLException {
+        String sql="INSERT sdcard(name,phone) VALUES(?,?)";
+        preparedSta=con.prepareStatement(sql);
         System.out.println("正在添加联系人 [输入stop结束录入]\n");
         Scanner in = new Scanner(System.in);
         System.out.println("请输入联系人姓名： ");
@@ -41,23 +45,30 @@ public class Address_book_1 implements Address_book {
             String phone = in.nextLine();
             Person1 temp = new Person1(name, phone);
             p1.put(phone, temp);
-            System.out.println("\n" + temp.toString() + "\n#   添加到sdcard卡成功   #\n");
+            preparedSta.setString(1, name);
+            preparedSta.setString(2, phone);
+            preparedSta.execute();
+            System.out.println("\n" + temp.toString() + "\n#   添加到sdcard表成功   #\n");
             add();
         } else {
             System.out.println("#   录入完成！\n");
-            save();
         }
     }
 
     @Override
-    public void delete(String x) {
+    public void delete(String x) throws SQLException {
         p1.remove(x);
-        save();
+        String sql="DELETE FROM sdcard WHERE phone=?";
+        preparedSta=con.prepareStatement(sql);
+        preparedSta.setString(1, x);
+        preparedSta.execute();
     }
 
     @Override
-    public void modify(String x) {
+    public void modify(String x) throws SQLException {
         p1.remove(x);
+        String sql="UPDATE sdcard SET name=?,phone=? WHERE phone=?";
+        preparedSta=con.prepareStatement(sql);
         Scanner in = new Scanner(System.in);
         System.out.println("请输入联系人姓名： ");
         String name_temp=in.nextLine();
@@ -65,8 +76,11 @@ public class Address_book_1 implements Address_book {
         String phone_temp=in.nextLine();
         Person1 p1_temp = new Person1(name_temp,phone_temp);
         p1.put(phone_temp,p1_temp );
+        preparedSta.setString(1, name_temp);
+        preparedSta.setString(2, phone_temp);
+        preparedSta.setString(3,x );
+        preparedSta.execute();
         System.out.println(p1_temp);
-        save();
     }
 
     @Override
@@ -105,36 +119,53 @@ public class Address_book_1 implements Address_book {
         }
     }
 
-    @Override//对象反序列化
-    public void read() {
-        try {
-            p1.clear();
-            FileInputStream filein = new FileInputStream("resources\\sdcard.txt");
-            ObjectInputStream in = new ObjectInputStream(filein);
-            Person1 temp;
-            while (filein.available() > 0) {
-                temp = (Person1) in.readObject();
-                p1.put(temp.getPhone(), temp);
+    @Override//读取数据存入集合
+    public void read() throws SQLException {
+            String cmd = "SELECT * FROM sdcard";
+            preparedSta=con.prepareStatement(cmd);
+            ResultSet res=preparedSta.executeQuery();
+            while (res.next()){
+                String name=res.getString("name");
+                String phone=res.getString("phone");
+                Person1 temp=new Person1(name,phone);
+                p1.put(phone, temp);
             }
-            in.close();
-        } catch (IOException e) {
+    }
+
+    @Override//从集合写入数据库
+    public void save() {
+        final String URL = "jdbc:mysql://localhost:3306/address_book?characterEncoding=utf8&useSSL=false&serverTimezone=UTC";
+        final String USER = "root";
+        final String PASSWORD = "root";
+
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            System.out.println("# 数据库驱动加载成功");
+
+            Connection con = DriverManager.getConnection(URL,USER,PASSWORD);
+            System.out.println("# 数据库连接成功 " + con);
+
+            Statement sta = con.createStatement();
+            System.out.println("# 获取statement对象成功 " + sta);
+
+            for (String key : p1.keySet()) {
+                String cmd = "INSERT person_1 VALUES("+p1.get(key).getName()+","+p1.get(key).getPhone()+") ";
+                sta.execute(cmd);
+            }
+            sta.close();
+            con.close();
+        }
+        catch (ClassNotFoundException e) {
             e.printStackTrace();
-        } catch (ClassNotFoundException e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
     }
-
-    @Override//对象序列化
-    public void save() {
-        try {
-            FileOutputStream fileout = new FileOutputStream("resources\\sdcard.txt");
-            ObjectOutputStream out = new ObjectOutputStream(fileout);
-            for (String key : p1.keySet()) {
-                out.writeObject(p1.get(key));
-            }
-            fileout.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+    public void close(ResultSet x,boolean flag){
+        if(flag){
+            DataBase.close(x, preparedSta,con );
         }
+        else
+            DataBase.close(null, preparedSta,con );
     }
 }

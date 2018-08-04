@@ -1,12 +1,13 @@
 package com.leo;
 
+import java.sql.SQLException;
 import java.util.Scanner;
 
 //菜单类_实现字符菜单
 public class Menu {
     private Address_book a1=new Address_book_1();
     private Address_book a2=new Address_book_2();
-    public void welcome(){
+    public void welcome() throws SQLException {
         Scanner in = new Scanner(System.in);
         a1.read();
         a2.read();
@@ -33,18 +34,22 @@ public class Menu {
 
             case "0":
                 System.out.println("        #     感谢使用     #   \n");
-                a1.save();
-                a2.save();
+                a1.close(null, false);
+                a2.close(null, false);
                 System.exit(0);
                 break;
 
             case "1":
                 System.out.println("  请选择要添加的位置: \n");
-                System.out.println("[1] 添加到 sdcard.txt");
-                System.out.println("[2] 添加到 sim.txt");
+                System.out.println("[1] 添加到 sdcard表");
+                System.out.println("[2] 添加到 sim表");
                 String place=in.nextLine();
                 if(place.equals("1")){
-                    a1.add();
+                    try {
+                        a1.add();
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
                     welcome();
                 }
                 else if(place.equals("2")){
@@ -64,10 +69,10 @@ public class Menu {
                 boolean is2=a2.inquireByphone(delphone);
                 if(is1){//如果联系人存在 则删除
                     a1.delete(delphone);
-                    System.out.println("#   sdcard.txt删除联系人成功！\n");
+                    System.out.println("#   sdcard 删除联系人成功！\n");
                 }else if (is2){
                     a2.delete(delphone);
-                    System.out.println("#   sim.txt   删除联系人成功！\n");
+                    System.out.println("#   sim 删除联系人成功！\n");
                 }
                 else{//否则 报错
                     System.out.println("#   该号码不存在,请重新输入！\n");
